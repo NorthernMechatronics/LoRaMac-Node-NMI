@@ -45,6 +45,7 @@
 #include "LoRaMacAdr.h"
 #include "LoRaMacSerializer.h"
 #include "radio.h"
+extern void JoehackPrintf( const char *format, ... );
 
 #include "LoRaMac.h"
 
@@ -736,13 +737,12 @@ static void ProcessRadioTxDone( void )
     PhyParam_t phyParam;
     SetBandTxDoneParams_t txDone;
 
-    if( Nvm.MacGroup2.DeviceClass != CLASS_C )
-    {
-        Radio.Sleep( );
-    }
     // Setup timers
+    MacCtx.RxWindow1Delay = 100; // JOEHACK just wait 100ms before opening Rx Window
+    JoehackPrintf("ProcessRadioTxDone Setting RX 1 delay timer to %lu\r\n", MacCtx.RxWindow1Delay);
     TimerSetValue( &MacCtx.RxWindowTimer1, MacCtx.RxWindow1Delay );
     TimerStart( &MacCtx.RxWindowTimer1 );
+    JoehackPrintf("ProcessRadioTxDone Setting RX 2 delay timer to %lu\r\n", MacCtx.RxWindow2Delay);
     TimerSetValue( &MacCtx.RxWindowTimer2, MacCtx.RxWindow2Delay );
     TimerStart( &MacCtx.RxWindowTimer2 );
 
@@ -862,6 +862,7 @@ static void ProcessRadioRxDone( void )
     switch( macHdr.Bits.MType )
     {
         case FRAME_TYPE_JOIN_ACCEPT:
+            JoehackPrintf("ProcessRadioRxDone Joined!\r\n");
             // Check if the received frame size is valid
             if( size < LORAMAC_JOIN_ACCEPT_FRAME_MIN_SIZE )
             {
@@ -1259,6 +1260,7 @@ static void HandleRadioRxErrorTimeout( LoRaMacEventInfoStatus_t rx1EventInfoStat
 
             if( TimerGetElapsedTime( Nvm.MacGroup1.LastTxDoneTime ) >= MacCtx.RxWindow2Delay )
             {
+                JoehackPrintf("HandleRadioRxErrorTimeout stopping RX 2 delay timer\r\n");
                 TimerStop( &MacCtx.RxWindowTimer2 );
                 MacCtx.MacFlags.Bits.MacDone = 1;
             }
@@ -1316,10 +1318,12 @@ static void LoRaMacHandleIrqEvents( void )
         }
         if( events.Events.RxError == 1 )
         {
+            JoehackPrintf("RadioRxError\r\n");
             ProcessRadioRxError( );
         }
         if( events.Events.RxTimeout == 1 )
         {
+            JoehackPrintf("RadioRxTimeout\r\n");
             ProcessRadioRxTimeout( );
         }
     }
@@ -1672,6 +1676,8 @@ static void OnRxWindow1TimerEvent( void* context )
     MacCtx.RxWindow1Config.RxContinuous = false;
     MacCtx.RxWindow1Config.RxSlot = RX_SLOT_WIN_1;
 
+    JoehackPrintf("OnRxWindow1TimerEvent - Symbol timeout was %lu\r\n", MacCtx.RxWindow1Config.WindowTimeout);
+    MacCtx.RxWindow1Config.WindowTimeout = 0; // JOEHACK wait for whole LoRaWAN packet
     RxWindowSetup( &MacCtx.RxWindowTimer1, &MacCtx.RxWindow1Config );
 }
 
@@ -1689,6 +1695,8 @@ static void OnRxWindow2TimerEvent( void* context )
     MacCtx.RxWindow2Config.RxContinuous = false;
     MacCtx.RxWindow2Config.RxSlot = RX_SLOT_WIN_2;
 
+    JoehackPrintf("OnRxWindow2TimerEvent - Symbol timeout was %lu\r\n", MacCtx.RxWindow2Config.WindowTimeout);
+    MacCtx.RxWindow2Config.WindowTimeout = 0; // JOEHACK
     RxWindowSetup( &MacCtx.RxWindowTimer2, &MacCtx.RxWindow2Config );
 }
 
@@ -2503,6 +2511,7 @@ static LoRaMacStatus_t ScheduleTx( bool allowDelayedTx )
         return status;
     }
 
+    JoehackPrintf("ScheduleTx on channel %lu\r\n", MacCtx.Channel);
     // Try to send now
     return SendFrameOnChannel( MacCtx.Channel );
 }
@@ -2674,7 +2683,7 @@ static void RxWindowSetup( TimerEvent_t* rxTimer, RxConfigParams_t* rxConfig )
 
     if( RegionRxConfig( Nvm.MacGroup2.Region, rxConfig, ( int8_t* )&MacCtx.McpsIndication.RxDatarate ) == true )
     {
-        Radio.Rx( Nvm.MacGroup2.MacParams.MaxRxWindow );
+        Radio.Rx( 0 ); // Continuous mode
         MacCtx.RxSlot = rxConfig->RxSlot;
     }
 }
@@ -2696,6 +2705,7 @@ static void OpenContinuousRxCWindow( void )
     // Thus, there is no need to set the radio in standby mode.
     if( RegionRxConfig( Nvm.MacGroup2.Region, &MacCtx.RxWindowCConfig, ( int8_t* )&MacCtx.McpsIndication.RxDatarate ) == true )
     {
+        JoehackPrintf("Radio.Rx(0)\r\n");
         Radio.Rx( 0 ); // Continuous mode
         MacCtx.RxSlot = MacCtx.RxWindowCConfig.RxSlot;
     }
