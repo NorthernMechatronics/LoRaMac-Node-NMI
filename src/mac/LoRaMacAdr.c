@@ -90,12 +90,14 @@ static bool CalcNextV10X( CalcNextAdrParams_t* adrNext, int8_t* drOut, int8_t* t
                     {
                         // We must set adrAckReq to false as soon as we reach the lowest datarate
                         adrAckReq = false;
-                        if( adrNext->UpdateChanMask == true )
-                        {
-                            InitDefaultsParams_t params;
-                            params.Type = INIT_TYPE_ACTIVATE_DEFAULT_CHANNELS;
-                            RegionInitDefaults( adrNext->Region, &params );
-                        }
+                        
+//  Not strictly according to specification v1.0.3                        
+//                         if( adrNext->UpdateChanMask == true )
+//                         {
+//                             InitDefaultsParams_t params;
+//                             params.Type = INIT_TYPE_ACTIVATE_DEFAULT_CHANNELS;
+//                             RegionInitDefaults( adrNext->Region, &params );
+//                         }
                     }
                 }
             }
