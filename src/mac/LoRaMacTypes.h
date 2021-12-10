@@ -664,6 +664,14 @@ typedef enum eFCntIdentifier
      * Multicast downlink counter for index 3
      */
     MC_FCNT_DOWN_3,
+    /*!
+     * RJcount1 is a counter incremented with every transmitted  Type 1 Rejoin request.
+     */
+    RJ_COUNT_0,
+    /*!
+     * RJcount0 is a counter incremented with every transmitted Type 0 or 2 Rejoin request.
+     */
+    RJ_COUNT_1,
 }FCntIdentifier_t;
 
 /*!
