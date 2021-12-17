@@ -372,7 +372,7 @@ static void TimerSetTimeout( TimerEvent_t *obj )
     {
         obj->Timestamp = RtcGetTimerElapsedTime( ) + minTicks;
     }
-    RtcSetAlarm( obj->Timestamp );
+    RtcSetAlarm( obj->Timestamp - RtcGetTimerElapsedTime( ) );
 }
 
 TimerTime_t TimerTempCompensation( TimerTime_t period, float temperature )
